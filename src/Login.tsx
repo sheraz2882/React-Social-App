@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import type { FormEvent, ChangeEvent } from 'react';
+import { Link } from 'react-router-dom';
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -25,7 +27,7 @@ function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setStatusMessage('');
 
@@ -37,14 +39,14 @@ function Login() {
     }
   };
 
-  const handleUsernameChange = (e) => {
+  const handleUsernameChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUsername(e.target.value);
     if (errors.username) {
       setErrors((prev) => ({ ...prev, username: undefined }));
     }
   };
 
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
     setPassword(e.target.value);
     if (errors.password) {
       setErrors((prev) => ({ ...prev, password: undefined }));
@@ -56,13 +58,9 @@ function Login() {
       <div className="signup-card">
         <h3 className="signup-title">New here?</h3>
         <p className="signup-text">Create an account to join our community, follow your interests, and stay connected.</p>
-        <button
-          type="button"
-          className="create-account-button"
-          onClick={() => alert('Create account flow coming soon.')}
-        >
+        <Link to="/signup" className="create-account-button">
           Create account
-        </button>
+        </Link>
       </div>
       
       <div className="login-card">
