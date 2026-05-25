@@ -1,20 +1,24 @@
 import { useState } from 'react';
 import type { FormEvent, ChangeEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from './firebase';
 
 function Login() {
-  const [username, setUsername] = useState('');
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [statusMessage, setStatusMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const validate = () => {
-    const newErrors: { username?: string; password?: string } = {};
+    const newErrors: { email?: string; password?: string } = {};
 
-    if (!username.trim()) {
-      newErrors.username = 'Username is required';
-    } else if (username.trim().length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
     if (!password) {
@@ -27,26 +31,41 @@ function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setStatusMessage('');
 
-    if (validate()) {
-      setStatusMessage('Login successful. Welcome back!');
-      setErrors({});
-    } else {
+    if (!validate()) {
       setStatusMessage('Please fix the errors and try again.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('User logged in:', userCredential.user);
+      setStatusMessage('Login successful. Redirecting...');
+      setErrors({});
+      
+      // Navigate to home page after successful login
+      setTimeout(() => {
+        navigate('/home');
+      }, 500);
+    } catch (error: any) {
+      setIsLoading(false);
+      setStatusMessage('Invalid email or password. Please try again.');
+      console.error('Login error:', error.message);
     }
   };
 
-  const handleUsernameChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setUsername(e.target.value);
-    if (errors.username) {
-      setErrors((prev) => ({ ...prev, username: undefined }));
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+    if (errors.email) {
+      setErrors((prev) => ({ ...prev, email: undefined }));
     }
   };
 
-  const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handlePasswordChange = (e) => {
     setPassword(e.target.value);
     if (errors.password) {
       setErrors((prev) => ({ ...prev, password: undefined }));
@@ -55,6 +74,9 @@ function Login() {
 
   return (
     <div className="login-page">
+
+      <h1 className='heading-1'>Let's Connect!</h1>
+      
       <div className="signup-card">
         <h3 className="signup-title">New here?</h3>
         <p className="signup-text">Create an account to join our community, follow your interests, and stay connected.</p>
@@ -69,20 +91,20 @@ function Login() {
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>
           <div className="form-group">
-            <label htmlFor="username" className="form-label">
-              Username
+            <label htmlFor="email" className="form-label">
+              Email
             </label>
             <input
-              id="username"
-              name="username"
-              type="text"
-              className={`form-input ${errors.username ? 'input-error' : ''}`}
-              value={username}
-              onChange={handleUsernameChange}
-              placeholder="Enter your username"
-              autoComplete="username"
+              id="email"
+              name="email"
+              type="email"
+              className={`form-input ${errors.email ? 'input-error' : ''}`}
+              value={email}
+              onChange={handleEmailChange}
+              placeholder="Enter your email"
+              autoComplete="email"
             />
-            {errors.username && <span className="error-text">{errors.username}</span>}
+            {errors.email && <span className="error-text">{errors.email}</span>}
           </div>
 
           <div className="form-group">
@@ -103,8 +125,8 @@ function Login() {
           </div>
 
           <div className="form-footer">
-            <button type="submit" className="submit-button">
-              Login
+            <button type="submit" className="submit-button" disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Login'}
             </button>
             <a href="#" className="forgot-password" onClick={(e) => e.preventDefault()}>
               Forgot password?

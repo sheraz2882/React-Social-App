@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ref, push, set } from 'firebase/database';
-import { database } from './firebase.ts';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { database, auth } from './firebase.ts';
 
 function CreateAccount() {
   const navigate = useNavigate();
@@ -58,20 +58,35 @@ function CreateAccount() {
     setIsLoading(true);
 
     try {
+      // Create Firebase Authentication user
+      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const user = userCredential.user;
+
+      // Save user profile to Realtime Database
       const userRef = ref(database, 'users');
       const newUserRef = push(userRef);
 
       await set(newUserRef, {
+        uid: user.uid,
         username: username.trim(),
         email: email.trim(),
         gender,
         createdAt: new Date().toISOString(),
       });
 
-      navigate('/home');
-    } catch (error) {
-      console.error('Firebase signup error:', error);
-      setStatusMessage('Unable to create account. Please try again later.');
+      setStatusMessage('Account created successfully. Redirecting...');
+      setTimeout(() => {
+        navigate('/home');
+      }, 500);
+    } catch (error: any) {
+      console.error('Firebase signup error:', error.message);
+      if (error.code === 'auth/email-already-in-use') {
+        setStatusMessage('This email is already registered. Please try another email.');
+      } else if (error.code === 'auth/weak-password') {
+        setStatusMessage('Password is too weak. Use at least 6 characters.');
+      } else {
+        setStatusMessage('Unable to create account. Please try again later.');
+      }
     } finally {
       setIsLoading(false);
     }
